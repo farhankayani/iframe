@@ -155,28 +155,9 @@ function formatPhoneNumber(phoneNumber) {
 }
 
 // Configure multer for file storage
-const uploadDir = path.join(process.cwd(), "uploads");
-
-// Ensure upload directory exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Create unique filename by adding timestamp
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-});
-
-// Create upload middleware
+// Use memory storage for Vercel serverless environment
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB file size limit
   },
@@ -480,7 +461,7 @@ app.post(
       if (files.vehicle_photos) {
         fileData.vehicle_photos = files.vehicle_photos.map((file) => ({
           filename: file.originalname,
-          path: file.path,
+          buffer: file.buffer,
           type: file.mimetype,
           size: file.size,
         }));
@@ -490,7 +471,7 @@ app.post(
       if (files.dealer_offer) {
         fileData.dealer_offer = files.dealer_offer.map((file) => ({
           filename: file.originalname,
-          path: file.path,
+          buffer: file.buffer,
           type: file.mimetype,
           size: file.size,
         }));
@@ -673,10 +654,15 @@ app.get("/manheim", async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(process.env.PORT, (err) => {
-  console.log(err || `Server running on port ${process.env.PORT}`);
-});
+// Export the app for Vercel serverless functions
+export default app;
+
+// Only start the server if not in Vercel environment
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  app.listen(process.env.PORT || 3000, (err) => {
+    console.log(err || `Server running on port ${process.env.PORT || 3000}`);
+  });
+}
 
 // Add a health check endpoint
 app.get("/health", async (req, res) => {
