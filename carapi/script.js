@@ -1,4 +1,4 @@
-const BASE_URL = "https://iframe-backend.vercel.app/";
+const BASE_URL = "https://iframe-backend.vercel.app";
 
 const NEW_API_BASE_URL = "https://lionfish-app-dykha.ondigitalocean.app/api";
 
