@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-M5JK4X22");
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Car Information Form</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-M5JK4X22"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <div class="container" id="initialFormContainer">
+      <div class="tabs">
+        <button class="tab-btn" data-tab="make-model">Make/Model</button>
+        <button class="tab-btn active" data-tab="vin">VIN</button>
+        <!-- <button class="tab-btn active" data-tab="license-plate">
+          License Plate
+        </button> -->
+      </div>
+      <form id="carForm">
+        <div class="tab-content" id="make-model">
+          <div class="form-group">
+            <label for="year">Year:</label>
+            <select id="year" name="year" required>
+              <option value="">Select Year</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="make">Make:</label>
+            <select id="make" name="make" required>
+              <option value="">Select Make</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="model">Model:</label>
+            <select id="model" name="model" required>
+              <option value="">Select Model</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="trim">Trim:</label>
+            <select id="trim" name="trim" required>
+              <option value="">Select Trim</option>
+            </select>
+          </div>
+          <button type="submit">Get My Offer</button>
+        </div>
+        <div class="tab-content active" id="vin">
+          <div class="form-group">
+            <label for="vinNumber">VIN Number:</label>
+            <input
+              style="height: 44px; padding: 0px 12px"
+              type="text"
+              id="vinNumber"
+              name="vin"
+              maxlength="17"
+              required
+            />
+          </div>
+          <button type="submit">Get My Offer</button>
+        </div>
+        <!-- <div class="tab-content" id="license-plate">
+          <div class="form-group">
+            <label for="licensePlate">License Plate:</label>
+            <input
+              type="text"
+              id="licensePlate"
+              name="licensePlate"
+              style="height: 44px; padding: 0px 12px"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="state">State:</label>
+            <select id="state" name="state" required>
+              <option value="">Select State</option>
+              <option value="AL">Alabama (AL)</option>
+              <option value="AK">Alaska (AK)</option>
+              <option value="AZ">Arizona (AZ)</option>
+              <option value="AR">Arkansas (AR)</option>
+              <option value="CA">California (CA)</option>
+              <option value="CO">Colorado (CO)</option>
+              <option value="CT">Connecticut (CT)</option>
+              <option value="DE">Delaware (DE)</option>
+              <option value="FL">Florida (FL)</option>
+              <option value="GA">Georgia (GA)</option>
+              <option value="HI">Hawaii (HI)</option>
+              <option value="ID">Idaho (ID)</option>
+              <option value="IL">Illinois (IL)</option>
+              <option value="IN">Indiana (IN)</option>
+              <option value="IA">Iowa (IA)</option>
+              <option value="KS">Kansas (KS)</option>
+              <option value="KY">Kentucky (KY)</option>
+              <option value="LA">Louisiana (LA)</option>
+              <option value="ME">Maine (ME)</option>
+              <option value="MD">Maryland (MD)</option>
+              <option value="MA">Massachusetts (MA)</option>
+              <option value="MI">Michigan (MI)</option>
+              <option value="MN">Minnesota (MN)</option>
+              <option value="MS">Mississippi (MS)</option>
+              <option value="MO">Missouri (MO)</option>
+              <option value="MT">Montana (MT)</option>
+              <option value="NE">Nebraska (NE)</option>
+              <option value="NV">Nevada (NV)</option>
+              <option value="NH">New Hampshire (NH)</option>
+              <option value="NJ">New Jersey (NJ)</option>
+              <option value="NM">New Mexico (NM)</option>
+              <option value="NY">New York (NY)</option>
+              <option value="NC">North Carolina (NC)</option>
+              <option value="ND">North Dakota (ND)</option>
+              <option value="OH">Ohio (OH)</option>
+              <option value="OK">Oklahoma (OK)</option>
+              <option value="OR">Oregon (OR)</option>
+              <option value="PA">Pennsylvania (PA)</option>
+              <option value="RI">Rhode Island (RI)</option>
+              <option value="SC">South Carolina (SC)</option>
+              <option value="SD">South Dakota (SD)</option>
+              <option value="TN">Tennessee (TN)</option>
+              <option value="TX">Texas (TX)</option>
+              <option value="UT">Utah (UT)</option>
+              <option value="VT">Vermont (VT)</option>
+              <option value="VA">Virginia (VA)</option>
+              <option value="WA">Washington (WA)</option>
+              <option value="WV">West Virginia (WV)</option>
+              <option value="WI">Wisconsin (WI)</option>
+              <option value="WY">Wyoming (WY)</option>
+            </select>
+          </div>
+          <button type="submit">Get My Offer</button>
+        </div> -->
+        <input type="hidden" id="source" name="source" />
+      </form>
+      <div id="result"></div>
+    </div>
+    <div class="container" id="extendedFormContainer" style="display: none">
+      <div class="bubbles">
+        <div class="bubble active" data-label="Vehicle Info">1</div>
+        <div class="bubble" data-label="Condition">2</div>
+        <div class="bubble" data-label="Contact">3</div>
+      </div>
+      <form id="extendedForm">
+        <div class="tab-content active" id="vehicle-info">
+          <div class="form-group">
+            <label for="mileage">Mileage:</label>
+            <input
+              style="height: 44px"
+              type="number"
+              id="mileage"
+              name="mileage"
+              min="0"
+              max="9999999"
+              required
+              placeholder="Enter mileage (required)"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+            />
+          </div>
+          <div class="form-group">
+            <label for="zip">Zip Code:</label>
+            <input
+              style="height: 44px"
+              type="text"
+              id="zip"
+              name="zip"
+              pattern="\d{5}(-\d{4})?"
+              maxlength="5"
+              required
+              placeholder="Enter ZIP code (required)"
+              oninput="this.value = this.value.replace(/[^0-9-]/g, '')"
+            />
+          </div>
+          <div class="form-group">
+            <label>Title:</label>
+            <div class="radio-group">
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="clean"
+                  name="title"
+                  value="clean"
+                  required
+                />
+                <label for="clean">Clean</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="salvage"
+                  name="title"
+                  value="salvage"
+                  required
+                />
+                <label for="salvage">Salvage</label>
+              </div>
+            </div>
+          </div>
+          <!-- <div class="form-group">
+            <label>Is the title in your name?</label>
+            <div class="radio-group">
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="titleYes"
+                  name="titleInName"
+                  value="Title"
+                  required
+                />
+                <label for="titleYes">Yes</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="titleNo"
+                  name="titleInName"
+                  value="Missing Title	"
+                  required
+                />
+                <label for="titleNo">No</label>
+              </div>
+            </div>
+          </div> -->
+        </div>
+        <div class="tab-content" id="vehicle-condition">
+          <div class="form-group">
+            <label>Has the vehicle been in any accident?</label>
+            <div class="radio-group">
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="never"
+                  name="accident"
+                  value="No"
+                  required
+                />
+                <label for="never">Never</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="one"
+                  name="accident"
+                  value="Yes"
+                  required
+                />
+                <label for="one">1</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="twoPlus"
+                  name="accident"
+                  value="Yes"
+                  required
+                />
+                <label for="twoPlus">2+</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Is your vehicle drivable?</label>
+            <div class="radio-group">
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="drivable"
+                  name="drivable"
+                  value="Yes, it runs and drives	"
+                  required
+                />
+                <label for="drivable">Drivable</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="notDrivable"
+                  name="drivable"
+                  value="No, it does not run or drive	"
+                  required
+                />
+                <label for="notDrivable">Not Drivable</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Has your vehicle been repainted?</label>
+            <div class="radio-group">
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="originalPaint"
+                  name="repainted"
+                  value="Original Paint	"
+                  required
+                />
+                <label for="originalPaint">Original Paint</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="touchedUp"
+                  name="repainted"
+                  value="Touched Up	"
+                  required
+                />
+                <label for="touchedUp">Touched Up</label>
+              </div>
+              <div class="radio-option">
+                <input
+                  type="radio"
+                  id="fullyRepainted"
+                  name="repainted"
+                  value="Fully Repainted	"
+                  required
+                />
+                <label for="fullyRepainted">Fully Repainted</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-content" id="contact-info">
+          <div class="form-group">
+            <label for="firstName">First Name:</label>
+            <input
+              style="height: 44px"
+              type="text"
+              id="firstName"
+              name="firstName"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name:</label>
+            <input
+              style="height: 44px"
+              type="text"
+              id="lastName"
+              name="lastName"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number:</label>
+            <input
+              style="height: 44px"
+              type="tel"
+              id="phone"
+              name="phone"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input
+              style="height: 44px"
+              type="email"
+              id="email"
+              name="email"
+              required
+            />
+          </div>
+        </div>
+        <div class="navigation-buttons">
+          <button type="button" id="prevBtn">Back</button>
+          <button type="button" id="nextBtn">Next</button>
+        </div>
+        <input type="hidden" id="sourceExtended" name="source" />
+      </form>
+    </div>
+    <div id="loader" style="display: none">Loading...</div>
+
+    <script src="formValidations.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
