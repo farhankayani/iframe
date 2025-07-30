@@ -196,40 +196,49 @@ async function createSalesforceLead(formData) {
     const formattedPhone = formatPhoneNumber(formData.phone);
 
     // Create Lead
-    const leadResult = await conn.sobject("Lead").create({
+    // Only include fields if they are present in formData (make all fields optional)
+    const leadPayload = {
       // Basic Contact Information
-      FirstName: formData.firstName, // Changed from Name to FirstName
-      LastName: formData.lastName, // LastName is required for Lead
-      Email: formData.email,
-      Phone: formattedPhone,
-      MobilePhone: formattedPhone, // Add mobile phone field with the same number
-      Company: "CarTracker",
+      ...(formData.firstName && { FirstName: formData.firstName }),
+      ...(formData.lastName && { LastName: formData.lastName }),
+      ...(formData.email && { Email: formData.email }),
+      ...(formData.phone && { Phone: formattedPhone }),
+      ...(formData.phone && { MobilePhone: formattedPhone }),
+      Company: "CarTracker", // Company is still required by Salesforce
 
       // Vehicle Information
-      Year__c: formData.year,
-      Make__c: formData.make,
-      Model__c: formData.model,
-      Trim__c: formData.trim,
-      VIN__c: formData.vin,
+      ...(formData.year && { Year__c: formData.year }),
+      ...(formData.make && { Make__c: formData.make }),
+      ...(formData.model && { Model__c: formData.model }),
+      ...(formData.trim && { Trim__c: formData.trim }),
+      ...(formData.vin && { VIN__c: formData.vin }),
 
       // Additional Vehicle Details
-      Mileage__c: formData.mileage,
-      Zip_Code__c: formData.zip,
-      Title: formData.title,
-      Ownership_Type__c: formData.titleInName,
-      License_Plate__c: formData.licensePlate,
-      State__c: formData.state,
+      ...(formData.mileage && { Mileage__c: formData.mileage }),
+      ...(formData.zip && { Zip_Code__c: formData.zip }),
+      ...(formData.title && { Title: formData.title }),
+      ...(formData.titleInName && { Ownership_Type__c: formData.titleInName }),
+      ...(formData.licensePlate && { License_Plate__c: formData.licensePlate }),
+      ...(formData.state && { State__c: formData.state }),
 
       // Vehicle Condition
-      Vehicle_Condition__c: formData.accident,
-      Operable_Status__c: formData.drivable,
-      Repaint__c: formData.repainted,
-      LeadSource: formData.source, // Use the source from the form data
-      Sub_Lead_Source__c: formData.subLeadSource, // Add the sub lead source
+      ...(formData.accident && { Accident__c: formData.accident }),
+      ...(formData.drivable && { Operable_Status__c: formData.drivable }),
+      ...(formData.repainted && { Repaint__c: formData.repainted }),
+      ...(formData.source && { LeadSource: formData.source }),
+      ...(formData.subLeadSource && {
+        Sub_Lead_Source__c: formData.subLeadSource,
+      }),
+
+      ...(formData.alternatePhone && {
+        Alternate_Phone_number__c: formData.alternatePhone,
+      }),
 
       // Default Lead Status
       Status: "New",
-    });
+    };
+
+    const leadResult = await conn.sobject("Lead").create(leadPayload);
 
     console.log("Salesforce Lead Created:", leadResult);
 
