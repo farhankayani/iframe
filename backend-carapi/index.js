@@ -593,9 +593,24 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
       License_Plate__c: formData.vehicle?.license_plate || "",
       State__c: formData.vehicle?.state || "",
 
-      // Appointment information
+      // Appointment information - format as local time to preserve intended appointment time
       Appointment_Request_Date_Time__c: formData.appointment?.requested_time
-        ? `${formData.appointment.requested_time}:00`
+        ? (() => {
+            const datetimeStr = formData.appointment.requested_time;
+            // Convert "2025-09-26 15:00" to "2025-09-26T15:00:00" and treat as local time
+            const isoFormat = datetimeStr.replace(" ", "T") + ":00";
+            // Create a Date object to get timezone offset, then format to preserve local time
+            const tempDate = new Date(isoFormat);
+            const offset = tempDate.getTimezoneOffset();
+            const offsetHours = Math.abs(Math.floor(offset / 60));
+            const offsetMinutes = Math.abs(offset % 60);
+            const offsetSign = offset > 0 ? "-" : "+";
+            const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(
+              2,
+              "0"
+            )}:${String(offsetMinutes).padStart(2, "0")}`;
+            return isoFormat + timezoneOffset;
+          })()
         : null,
     };
 
