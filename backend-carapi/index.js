@@ -595,7 +595,7 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
 
       // Appointment information
       Appointment_Request_Date_Time__c: formData.appointment?.requested_time
-        ? new Date(formData.appointment.requested_time).toISOString()
+        ? formData.appointment.requested_time
         : null,
     };
 
