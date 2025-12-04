@@ -596,7 +596,6 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
       // Car location information - map to both fields
       ...(formData.vehicle?.car_location && {
         Car_Location__c: formData.vehicle.car_location,
-        Car_Location2__c: formData.vehicle.car_location,
       }),
 
       // Appointment information - format as local time to preserve intended appointment time
