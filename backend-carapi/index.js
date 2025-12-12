@@ -580,7 +580,16 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
       VIN__c: formData.vehicle?.vin || vehicleDetails.vin || "",
       Mileage__c: formData.vehicle?.mileage || "",
       Desired_Price__c: formData.vehicle?.desired_price
-        ? formData.vehicle.desired_price.replace(/[$,]/g, "")
+        ? (() => {
+            // Convert to string, trim whitespace, remove currency symbols and commas
+            const priceStr = String(formData.vehicle.desired_price)
+              .trim()
+              .replace(/[$,]/g, "");
+            // Return empty string if result is not a valid number, otherwise return cleaned value
+            return priceStr && !isNaN(priceStr) && priceStr !== ""
+              ? priceStr
+              : "";
+          })()
         : "",
 
       // Essential vehicle details from lookup
