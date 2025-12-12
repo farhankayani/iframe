@@ -617,6 +617,11 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
             return isoFormat + timezoneOffset;
           })()
         : null,
+
+      // Private party URL information
+      ...(formData.vehicle?.private_party_url && {
+        Private_Party_URL__c: formData.vehicle.private_party_url,
+      }),
     };
 
     console.log("Salesforce Lead Data:", leadData);
