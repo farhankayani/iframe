@@ -563,6 +563,71 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
       LeadSource: formData.lead?.source || "Website Chatbot",
       Status: formData.lead?.status || "New",
 
+      // Set CreatedDate as current time in Anaheim timezone (America/Los_Angeles)
+      CreatedDate: (() => {
+        const now = new Date();
+        // Get date components in Anaheim timezone (America/Los_Angeles)
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/Los_Angeles",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+        const parts = formatter.formatToParts(now);
+        const year = parts.find((p) => p.type === "year").value;
+        const month = parts.find((p) => p.type === "month").value;
+        const day = parts.find((p) => p.type === "day").value;
+        const hour = parts.find((p) => p.type === "hour").value;
+        const minute = parts.find((p) => p.type === "minute").value;
+        const second = parts.find((p) => p.type === "second").value;
+
+        // Calculate timezone offset by formatting date in both UTC and Anaheim timezone
+        const utcFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "UTC",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
+        const utcParts = utcFormatter.formatToParts(now);
+        const utcHour = parseInt(utcParts.find((p) => p.type === "hour").value);
+        const utcMinute = parseInt(
+          utcParts.find((p) => p.type === "minute").value
+        );
+        const anaheimHour = parseInt(hour);
+        const anaheimMinute = parseInt(minute);
+
+        // Calculate offset: America/Los_Angeles is UTC-8 (PST) or UTC-7 (PDT)
+        // Determine offset by comparing UTC and Anaheim times
+        let offsetMinutes =
+          anaheimHour * 60 + anaheimMinute - (utcHour * 60 + utcMinute);
+
+        // Normalize offset to -8 or -7 hours range (accounting for date boundaries)
+        // If offset is positive and large, subtract 24 hours (e.g., +16 becomes -8)
+        // If offset is very negative, add 24 hours to get into valid range
+        if (offsetMinutes > 12 * 60) offsetMinutes -= 24 * 60;
+        if (offsetMinutes < -12 * 60) offsetMinutes += 24 * 60;
+
+        // Format offset (America/Los_Angeles is always negative: UTC-8 or UTC-7)
+        const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
+        const offsetMins = Math.abs(offsetMinutes % 60);
+        const offsetSign = "-";
+
+        // Construct ISO string with timezone offset
+        const anaheimDateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+        return `${anaheimDateStr}${offsetSign}${String(offsetHours).padStart(
+          2,
+          "0"
+        )}:${String(offsetMins).padStart(2, "0")}`;
+      })(),
+
       // Contact information - with fallbacks for required fields
       FirstName: formData.contact?.first_name || "Unknown",
       LastName: formData.contact?.last_name || "Unknown", // Required field
