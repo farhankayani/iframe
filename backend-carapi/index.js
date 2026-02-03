@@ -181,7 +181,18 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   const trim = get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim || "";
   const vin = get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "";
   const mileage = get(formData.mileage, formData.vehicle?.mileage);
-  const zip = get(formData.zip, formData.vehicle?.zip || formData.vehicle?.car_location);
+  
+  // Extract ZIP code properly - prioritize explicit zip field, otherwise extract from car_location
+  let zip = get(formData.zip, formData.vehicle?.zip);
+  if (!zip && fromChatbot && formData.vehicle?.car_location) {
+    // Try to extract ZIP code from car_location if it looks like a ZIP (5 digits or 5+4 format)
+    const carLoc = formData.vehicle.car_location;
+    const zipMatch = carLoc.match(/\b\d{5}(?:-\d{4})?\b/);
+    if (zipMatch) {
+      zip = zipMatch[0];
+    }
+  }
+  
   const state = get(formData.state, formData.vehicle?.state);
   const title = get(formData.title, formData.vehicle?.title);
   const titleInName = get(formData.titleInName, formData.vehicle?.titleInName);
@@ -193,7 +204,10 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   const subLeadSource = get(formData.subLeadSource, formData.lead?.subLeadSource);
   if (subLeadSource) source = `${source} ${subLeadSource}`.trim();
   const vehicleStr = [year, make, model, trim].filter(Boolean).join(" ");
-  const carLocation = zip || state || "";
+  const carLocation = formData.vehicle?.car_location || zip || state || "";
+  
+  // Validate ZIP code format (5 digits or 5+4 format)
+  const isValidZip = zip && /^\d{5}(?:-\d{4})?$/.test(zip);
 
   return {
     firstName: firstName || "",
@@ -210,7 +224,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
     trim: trim || "",
     vin: vin || "",
     mileage: mileage || "",
-    zipCode: zip || "",
+    ...(isValidZip && { zipCode: zip }),
     title: title || "",
     titleOnName: titleInName || "",
     accident: accident || "",
