@@ -154,6 +154,90 @@ function formatPhoneNumber(phoneNumber) {
   )}-${digitsOnly.slice(6)}`;
 }
 
+// Format phone to E.164 (e.g. +1XXXXXXXXXX)
+function formatPhoneE164(phoneNumber) {
+  if (!phoneNumber) return "";
+  const digitsOnly = phoneNumber.replace(/\D/g, "");
+  if (digitsOnly.length < 10) return phoneNumber;
+  const normalized = digitsOnly.length === 10 ? `1${digitsOnly}` : digitsOnly;
+  return `+${normalized}`;
+}
+
+const RAILWAY_LEADS_URL =
+  "https://abundant-miracle-production.up.railway.app/api/v1/leads";
+
+// Build Abundant Miracles payload from form data. formData can be flat (submit-form) or nested (chatbot).
+// vehicleOverrides: optional { year, make, model, trim, vin } from VIN/license lookup (chatbot).
+function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {}) {
+  const get = (flat, nested) =>
+    fromChatbot ? nested : flat;
+  const firstName = get(formData.firstName, formData.contact?.first_name);
+  const lastName = get(formData.lastName, formData.contact?.last_name);
+  const email = get(formData.email, formData.contact?.email);
+  const phone = get(formData.phone, formData.contact?.phone);
+  const year = get(formData.year, formData.vehicle?.year) || vehicleOverrides.year || "";
+  const make = get(formData.make, formData.vehicle?.make) || vehicleOverrides.make || "";
+  const model = get(formData.model, formData.vehicle?.model) || vehicleOverrides.model || "";
+  const trim = get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim || "";
+  const vin = get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "";
+  const mileage = get(formData.mileage, formData.vehicle?.mileage);
+  const zip = get(formData.zip, formData.vehicle?.zip || formData.vehicle?.car_location);
+  const state = get(formData.state, formData.vehicle?.state);
+  const title = get(formData.title, formData.vehicle?.title);
+  const titleInName = get(formData.titleInName, formData.vehicle?.titleInName);
+  const accident = get(formData.accident, formData.vehicle?.accident);
+  const drivable = get(formData.drivable, formData.vehicle?.drivable);
+  const repainted = get(formData.repainted, formData.vehicle?.repainted);
+  let source = get(formData.source, formData.lead?.source) || "Manual";
+  if (source === "thecartrackers.com") source = "CT website";
+  const subLeadSource = get(formData.subLeadSource, formData.lead?.subLeadSource);
+  if (subLeadSource) source = `${source} ${subLeadSource}`.trim();
+  const vehicleStr = [year, make, model, trim].filter(Boolean).join(" ");
+  const carLocation = zip || state || "";
+
+  return {
+    firstName: firstName || "",
+    lastName: lastName || "",
+    email: email || "",
+    phone: formatPhoneE164(phone),
+    vehicleYear: year || "",
+    vehicleMake: make || "",
+    vehicleModel: model || "",
+    vehicleTrim: trim || "",
+    year: year || "",
+    make: make || "",
+    model: model || "",
+    trim: trim || "",
+    vin: vin || "",
+    mileage: mileage || "",
+    zipCode: zip || "",
+    title: title || "",
+    titleOnName: titleInName || "",
+    accident: accident || "",
+    drivable: drivable || "",
+    painted: repainted || "",
+    vehicle: vehicleStr,
+    carLocation,
+    source,
+    lead_type: "buying",
+    status: "new",
+    leadFormId: 70,
+  };
+}
+
+// Send lead to Abundant Miracles (Railway). Does not throw; logs errors.
+async function sendLeadToRailway(formData, fromChatbot = false, vehicleOverrides = {}) {
+  try {
+    const payload = buildRailwayPayload(formData, fromChatbot, vehicleOverrides);
+    await axios.post(RAILWAY_LEADS_URL, payload, {
+      headers: { "Content-Type": "application/json" },
+    });
+    console.log("Lead sent to Abundant Miracles (Railway)");
+  } catch (error) {
+    console.error("Abundant Miracles (Railway) lead send error:", error?.response?.data || error.message);
+  }
+}
+
 // Configure multer for file storage
 // Use memory storage for Vercel serverless environment
 const upload = multer({
@@ -247,6 +331,9 @@ async function createSalesforceLead(formData) {
 
     // Send email notification
     await sendLeadNotificationEmail(formData, formData, leadResult.id);
+
+    // Send lead to Abundant Miracles (Railway)
+    await sendLeadToRailway(formData, false);
 
     return leadResult;
   } catch (error) {
@@ -720,6 +807,15 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
       // await logError(error, "create lead", leadData);
       throw error;
     }
+
+    // Send lead to Abundant Miracles (Railway), with vehicle details from VIN/plate lookup if available
+    await sendLeadToRailway(formData, true, {
+      year: vehicleDetails.year,
+      make: vehicleDetails.make,
+      model: vehicleDetails.model,
+      trim: vehicleDetails.trim,
+      vin: vehicleDetails.vin,
+    });
 
     console.log("Salesforce Chatbot Lead Created/Updated:", leadResult);
 
