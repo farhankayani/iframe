@@ -210,8 +210,15 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   const subLeadSource = get(formData.subLeadSource, formData.lead?.subLeadSource);
   if (subLeadSource) source = `${source} ${subLeadSource}`.trim();
   const vehicleStr = [year, make, model, trim].filter(Boolean).join(" ");
-  const carLocation = formData.vehicle?.car_location || zip || state || "";
-  
+  const carLocation =
+    get(formData.car_location, formData.vehicle?.car_location) || zip || state || "";
+  const privatePartyUrl = get(formData.private_party_url, formData.vehicle?.private_party_url);
+  const desiredPriceRaw = get(formData.desired_price, formData.vehicle?.desired_price);
+  const askingPrice =
+    desiredPriceRaw != null && desiredPriceRaw !== ""
+      ? String(desiredPriceRaw).replace(/\D/g, "")
+      : "";
+
   // Validate ZIP code format (5 digits or 5+4 format)
   const isValidZip = zip && /^\d{5}(?:-\d{4})?$/.test(zip);
 
@@ -237,7 +244,9 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
     drivable: drivable || "",
     painted: repainted || "",
     vehicle: vehicleStr,
-    carLocation,
+    carLocation: carLocation || "",
+    ...(askingPrice !== "" && { askingPrice }),
+    ...(privatePartyUrl && { message: `Listing: ${privatePartyUrl}` }),
     source,
     lead_type: "buying",
     status: "new",
@@ -246,9 +255,36 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
 }
 
 // Send lead to Abundant Miracles (Railway). Does not throw; logs errors.
+// When only VIN is provided (no year/make/model/trim), looks up vehicle by VIN and adds to payload.
 async function sendLeadToRailway(formData, fromChatbot = false, vehicleOverrides = {}) {
   try {
-    const payload = buildRailwayPayload(formData, fromChatbot, vehicleOverrides);
+    const get = (flat, nested) => (fromChatbot ? nested : flat);
+    const vin =
+      (get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "").toString().trim();
+    const hasYear = !!(get(formData.year, formData.vehicle?.year) || vehicleOverrides.year);
+    const hasMake = !!(get(formData.make, formData.vehicle?.make) || vehicleOverrides.make);
+    const hasModel = !!(get(formData.model, formData.vehicle?.model) || vehicleOverrides.model);
+    const hasTrim = !!(get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim);
+    const needsLookup = vin && (!hasYear || !hasMake || !hasModel || !hasTrim);
+
+    let overrides = { ...vehicleOverrides };
+    if (needsLookup && typeof fetchDataWithAuth === "function") {
+      try {
+        const url = `${BASE_URL}/vin/${vin}?verbose=yes`;
+        const vinData = await fetchDataWithAuth(url);
+        if (vinData) {
+          if (!overrides.year && vinData.year) overrides.year = vinData.year;
+          if (!overrides.make && vinData.make) overrides.make = vinData.make;
+          if (!overrides.model && vinData.model) overrides.model = vinData.model;
+          if (!overrides.trim && vinData.trim) overrides.trim = vinData.trim;
+          if (!overrides.vin && vinData.vin) overrides.vin = vinData.vin;
+        }
+      } catch (vinErr) {
+        console.error("VIN lookup for Railway lead failed:", vinErr?.message || vinErr);
+      }
+    }
+
+    const payload = buildRailwayPayload(formData, fromChatbot, overrides);
     await axios.post(RAILWAY_LEADS_URL, payload, {
       headers: { "Content-Type": "application/json" },
     });
