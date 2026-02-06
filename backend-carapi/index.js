@@ -166,6 +166,12 @@ function formatPhoneE164(phoneNumber) {
 const RAILWAY_LEADS_URL =
   "https://abundant-miracle-production.up.railway.app/api/v1/leads";
 
+function isValidEmail(value) {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return trimmed.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 // Build Abundant Miracles payload from form data. formData can be flat (submit-form) or nested (chatbot).
 // vehicleOverrides: optional { year, make, model, trim, vin } from VIN/license lookup (chatbot).
 function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {}) {
@@ -212,7 +218,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   return {
     firstName: firstName || "",
     lastName: lastName || "",
-    email: email || "",
+    ...(isValidEmail(email) && { email: String(email).trim() }),
     phone: formatPhoneE164(phone),
     vehicleYear: year || "",
     vehicleMake: make || "",
