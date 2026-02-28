@@ -150,8 +150,17 @@ function formatPhoneNumber(phoneNumber) {
   // Format as (XXX) XXX-XXXX
   return `(${digitsOnly.slice(0, 3)}) ${digitsOnly.slice(
     3,
-    6
+    6,
   )}-${digitsOnly.slice(6)}`;
+}
+
+// Convert form yes/no strings to boolean for Salesforce checkbox fields
+function toSalesforceBoolean(value) {
+  if (value === true || value === false) return value;
+  const s = String(value).trim().toLowerCase();
+  if (s === "yes" || s === "true" || s === "1") return true;
+  if (s === "no" || s === "false" || s === "0" || s === "none") return false;
+  return false;
 }
 
 // Format phone to E.164 for Railway (doc spec)
@@ -159,14 +168,14 @@ function formatPhoneNumberE164(phoneNumber) {
   if (!phoneNumber) return "";
   const digitsOnly = phoneNumber.replace(/\D/g, "");
   if (digitsOnly.length < 10) return phoneNumber;
-  if (digitsOnly.length === 11 && digitsOnly.startsWith("1")) return `+${digitsOnly}`;
+  if (digitsOnly.length === 11 && digitsOnly.startsWith("1"))
+    return `+${digitsOnly}`;
   if (digitsOnly.length === 10) return `+1${digitsOnly}`;
   if (phoneNumber.startsWith("+")) return phoneNumber;
   return `+1${digitsOnly.slice(-10)}`;
 }
 
-const RAILWAY_LEADS_URL =
-  "https://back-end-tzco.onrender.com/api/v1/leads";
+const RAILWAY_LEADS_URL = "https://back-end-tzco.onrender.com/api/v1/leads";
 
 function isValidEmail(value) {
   if (!value || typeof value !== "string") return false;
@@ -176,20 +185,30 @@ function isValidEmail(value) {
 
 // Build Abundant Miracles payload from form data. formData can be flat (submit-form) or nested (chatbot).
 // vehicleOverrides: optional { year, make, model, trim, vin } from VIN/license lookup (chatbot).
-function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {}) {
-  const get = (flat, nested) =>
-    fromChatbot ? nested : flat;
+function buildRailwayPayload(
+  formData,
+  fromChatbot = false,
+  vehicleOverrides = {},
+) {
+  const get = (flat, nested) => (fromChatbot ? nested : flat);
   const firstName = get(formData.firstName, formData.contact?.first_name);
   const lastName = get(formData.lastName, formData.contact?.last_name);
   const email = get(formData.email, formData.contact?.email);
   const phone = get(formData.phone, formData.contact?.phone);
-  const year = get(formData.year, formData.vehicle?.year) || vehicleOverrides.year || "";
-  const make = get(formData.make, formData.vehicle?.make) || vehicleOverrides.make || "";
-  const model = get(formData.model, formData.vehicle?.model) || vehicleOverrides.model || "";
-  const trim = get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim || "";
-  const vin = get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "";
+  const year =
+    get(formData.year, formData.vehicle?.year) || vehicleOverrides.year || "";
+  const make =
+    get(formData.make, formData.vehicle?.make) || vehicleOverrides.make || "";
+  const model =
+    get(formData.model, formData.vehicle?.model) ||
+    vehicleOverrides.model ||
+    "";
+  const trim =
+    get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim || "";
+  const vin =
+    get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "";
   const mileage = get(formData.mileage, formData.vehicle?.mileage);
-  
+
   // Extract ZIP code properly - prioritize explicit zip field, otherwise extract from car_location
   let zip = get(formData.zip, formData.vehicle?.zip);
   if (!zip && fromChatbot && formData.vehicle?.car_location) {
@@ -200,7 +219,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
       zip = zipMatch[0];
     }
   }
-  
+
   const state = get(formData.state, formData.vehicle?.state);
   const title = get(formData.title, formData.vehicle?.title);
   const titleInName = get(formData.titleInName, formData.vehicle?.titleInName);
@@ -209,12 +228,22 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   const repainted = get(formData.repainted, formData.vehicle?.repainted);
   let source = get(formData.source, formData.lead?.source) || "Manual";
   if (source === "thecartrackers.com") source = "CT website";
-  const leadSubSource = get(formData.subLeadSource, formData.lead?.subLeadSource) || "";
+  const leadSubSource =
+    get(formData.subLeadSource, formData.lead?.subLeadSource) || "";
   const vehicleStr = [year, make, model, trim].filter(Boolean).join(" ");
   const carLocation =
-    get(formData.car_location, formData.vehicle?.car_location) || zip || state || "";
-  const privatePartyUrl = get(formData.private_party_url, formData.vehicle?.private_party_url);
-  const desiredPriceRaw = get(formData.desired_price, formData.vehicle?.desired_price);
+    get(formData.car_location, formData.vehicle?.car_location) ||
+    zip ||
+    state ||
+    "";
+  const privatePartyUrl = get(
+    formData.private_party_url,
+    formData.vehicle?.private_party_url,
+  );
+  const desiredPriceRaw = get(
+    formData.desired_price,
+    formData.vehicle?.desired_price,
+  );
   const askingPrice =
     desiredPriceRaw != null && desiredPriceRaw !== ""
       ? String(desiredPriceRaw).replace(/\D/g, "")
@@ -238,7 +267,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
     trim: trim || "",
     vin: vin || "",
     mileage: mileage || "",
-    ...(fromChatbot ? (isValidZip && { zipCode: zip }) : { zipCode: zip || "" }),
+    ...(fromChatbot ? isValidZip && { zipCode: zip } : { zipCode: zip || "" }),
     title: title || "",
     titleOnName: titleInName || "",
     accident: accident || "",
@@ -258,15 +287,32 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
 
 // Send lead to Abundant Miracles (Railway). Does not throw; logs errors.
 // When only VIN is provided (no year/make/model/trim), looks up vehicle by VIN and adds to payload.
-async function sendLeadToRailway(formData, fromChatbot = false, vehicleOverrides = {}) {
+async function sendLeadToRailway(
+  formData,
+  fromChatbot = false,
+  vehicleOverrides = {},
+) {
   try {
     const get = (flat, nested) => (fromChatbot ? nested : flat);
-    const vin =
-      (get(formData.vin, formData.vehicle?.vin) || vehicleOverrides.vin || "").toString().trim();
-    const hasYear = !!(get(formData.year, formData.vehicle?.year) || vehicleOverrides.year);
-    const hasMake = !!(get(formData.make, formData.vehicle?.make) || vehicleOverrides.make);
-    const hasModel = !!(get(formData.model, formData.vehicle?.model) || vehicleOverrides.model);
-    const hasTrim = !!(get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim);
+    const vin = (
+      get(formData.vin, formData.vehicle?.vin) ||
+      vehicleOverrides.vin ||
+      ""
+    )
+      .toString()
+      .trim();
+    const hasYear = !!(
+      get(formData.year, formData.vehicle?.year) || vehicleOverrides.year
+    );
+    const hasMake = !!(
+      get(formData.make, formData.vehicle?.make) || vehicleOverrides.make
+    );
+    const hasModel = !!(
+      get(formData.model, formData.vehicle?.model) || vehicleOverrides.model
+    );
+    const hasTrim = !!(
+      get(formData.trim, formData.vehicle?.trim) || vehicleOverrides.trim
+    );
     const needsLookup = vin && (!hasYear || !hasMake || !hasModel || !hasTrim);
 
     let overrides = { ...vehicleOverrides };
@@ -277,12 +323,16 @@ async function sendLeadToRailway(formData, fromChatbot = false, vehicleOverrides
         if (vinData) {
           if (!overrides.year && vinData.year) overrides.year = vinData.year;
           if (!overrides.make && vinData.make) overrides.make = vinData.make;
-          if (!overrides.model && vinData.model) overrides.model = vinData.model;
+          if (!overrides.model && vinData.model)
+            overrides.model = vinData.model;
           if (!overrides.trim && vinData.trim) overrides.trim = vinData.trim;
           if (!overrides.vin && vinData.vin) overrides.vin = vinData.vin;
         }
       } catch (vinErr) {
-        console.error("VIN lookup for Railway lead failed:", vinErr?.message || vinErr);
+        console.error(
+          "VIN lookup for Railway lead failed:",
+          vinErr?.message || vinErr,
+        );
       }
     }
 
@@ -292,7 +342,10 @@ async function sendLeadToRailway(formData, fromChatbot = false, vehicleOverrides
     });
     console.log("Lead sent to Abundant Miracles (Railway)");
   } catch (error) {
-    console.error("Abundant Miracles (Railway) lead send error:", error?.response?.data || error.message);
+    console.error(
+      "Abundant Miracles (Railway) lead send error:",
+      error?.response?.data || error.message,
+    );
   }
 }
 
@@ -319,7 +372,7 @@ async function getSalesforceConnection() {
     // Authenticate
     await conn.login(
       process.env.SALESFORCE_USERNAME,
-      process.env.SALESFORCE_PASSWORD + process.env.SALESFORCE_SECURITY_TOKEN
+      process.env.SALESFORCE_PASSWORD + process.env.SALESFORCE_SECURITY_TOKEN,
     );
 
     return conn;
@@ -363,10 +416,17 @@ async function createSalesforceLead(formData) {
       ...(formData.licensePlate && { License_Plate__c: formData.licensePlate }),
       ...(formData.state && { State__c: formData.state }),
 
-      // Vehicle Condition
-      ...(formData.accident && { Accident__c: formData.accident }),
-      ...(formData.drivable && { Operable_Status__c: formData.drivable }),
-      ...(formData.repainted && { Repaint__c: formData.repainted }),
+      // Vehicle Condition (Salesforce expects boolean for Accident__c; others may be text/picklist)
+      ...(formData.accident != null &&
+        formData.accident !== "" && {
+          Accident__c: toSalesforceBoolean(formData.accident),
+        }),
+      ...(formData.drivable && {
+        Operable_Status__c: String(formData.drivable).trim(),
+      }),
+      ...(formData.repainted && {
+        Repaint__c: String(formData.repainted).trim(),
+      }),
       ...(formData.source && { LeadSource: formData.source }),
       ...(formData.subLeadSource && {
         Sub_Lead_Source__c: formData.subLeadSource,
@@ -483,7 +543,7 @@ app.get("/models", async (req, res) => {
   const { year, make_id } = req.query;
   try {
     const data = await fetchDataWithAuth(
-      `${BASE_URL}/models?year=${year}&make_id=${make_id}`
+      `${BASE_URL}/models?year=${year}&make_id=${make_id}`,
     );
     res.json(data);
   } catch (error) {
@@ -508,7 +568,7 @@ app.get("/trims", async (req, res) => {
   const { year, make_id, make_model_id } = req.query;
   try {
     const data = await fetchDataWithAuth(
-      `${BASE_URL}/trims?year=${year}&make_id=${make_id}&make_model_id=${make_model_id}`
+      `${BASE_URL}/trims?year=${year}&make_id=${make_id}&make_model_id=${make_model_id}`,
     );
 
     res.json(data);
@@ -549,7 +609,11 @@ function normalizeSubmitFormBody(body) {
   const vi = body.vehicleInfo || {};
   const vc = body.vehicleCondition || {};
   const c = body.contactInfo || {};
-  const hasNested = body.contactInfo != null || body.vehicle != null || body.vehicleInfo != null || body.vehicleCondition != null;
+  const hasNested =
+    body.contactInfo != null ||
+    body.vehicle != null ||
+    body.vehicleInfo != null ||
+    body.vehicleCondition != null;
   if (!hasNested) return body;
   return {
     ...body,
@@ -675,7 +739,7 @@ app.post(
         details: error.message,
       });
     }
-  }
+  },
 );
 
 // Consolidated endpoint for chatbot form submissions
@@ -709,7 +773,7 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
     else if (licensePlate && state) {
       try {
         console.log(
-          `Looking up license plate details for: ${licensePlate}, state: ${state}`
+          `Looking up license plate details for: ${licensePlate}, state: ${state}`,
         );
         const url = `${BASE_URL}/license-plate?country_code=US&region=${state}&lookup=${licensePlate}`;
         const plateData = await fetchDataWithAuth(url);
@@ -776,7 +840,7 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
         const utcParts = utcFormatter.formatToParts(now);
         const utcHour = parseInt(utcParts.find((p) => p.type === "hour").value);
         const utcMinute = parseInt(
-          utcParts.find((p) => p.type === "minute").value
+          utcParts.find((p) => p.type === "minute").value,
         );
         const anaheimHour = parseInt(hour);
         const anaheimMinute = parseInt(minute);
@@ -801,7 +865,7 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
         const anaheimDateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
         return `${anaheimDateStr}${offsetSign}${String(offsetHours).padStart(
           2,
-          "0"
+          "0",
         )}:${String(offsetMins).padStart(2, "0")}`;
       })(),
 
@@ -863,7 +927,7 @@ app.post("/api/submit-chatbot-form", async (req, res) => {
             const offsetSign = offset > 0 ? "-" : "+";
             const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(
               2,
-              "0"
+              "0",
             )}:${String(offsetMinutes).padStart(2, "0")}`;
             return isoFormat + timezoneOffset;
           })()
@@ -939,7 +1003,7 @@ app.get("/manheim", async (req, res) => {
         headers: {
           Authorization: `Basic ${process.env.MANHEIM_AUTH}`,
         },
-      }
+      },
     );
     res.json(response.data);
   } catch (error) {
@@ -1036,7 +1100,7 @@ app.use((err, req, res, next) => {
 async function sendLeadNotificationEmail(
   leadData,
   formData,
-  salesforceId = null
+  salesforceId = null,
 ) {
   try {
     // Format vehicle information
