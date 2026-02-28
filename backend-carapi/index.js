@@ -542,12 +542,45 @@ app.get("/license-plate", async (req, res) => {
   }
 });
 
+// Normalize nested main-form body (vehicle, vehicleInfo, vehicleCondition, contactInfo) to flat formData
+function normalizeSubmitFormBody(body) {
+  if (!body) return body;
+  const v = body.vehicle || {};
+  const vi = body.vehicleInfo || {};
+  const vc = body.vehicleCondition || {};
+  const c = body.contactInfo || {};
+  const hasNested = body.contactInfo != null || body.vehicle != null || body.vehicleInfo != null || body.vehicleCondition != null;
+  if (!hasNested) return body;
+  return {
+    ...body,
+    firstName: c.firstName ?? body.firstName,
+    lastName: c.lastName ?? body.lastName,
+    phone: c.phone ?? body.phone,
+    email: c.email ?? body.email,
+    year: v.year ?? body.year,
+    make: v.make ?? body.make,
+    model: v.model ?? body.model,
+    trim: v.trim ?? body.trim,
+    vin: v.vin ?? body.vin,
+    licensePlate: v.licensePlate ?? body.licensePlate,
+    state: v.state ?? body.state,
+    mileage: vi.mileage ?? body.mileage,
+    zip: vi.zipCode ?? body.zip,
+    title: vi.title ?? body.title,
+    titleInName: vi.titleOnName ?? body.titleInName,
+    accident: vc.accident ?? body.accident,
+    drivable: vc.drivable ?? body.drivable,
+    repainted: vc.repainted ?? body.repainted,
+    source: body.source,
+    subLeadSource: body.subLeadSource,
+  };
+}
+
 app.post("/api/submit-form", async (req, res) => {
   try {
-    const formData = req.body;
+    const formData = normalizeSubmitFormBody(req.body);
 
     console.log("Complete Form Submission:", {
-      // First form data
       vehicle: {
         year: formData.year,
         make: formData.make,
@@ -557,7 +590,6 @@ app.post("/api/submit-form", async (req, res) => {
         licensePlate: formData.licensePlate,
         state: formData.state,
       },
-      // Extended form data
       vehicleInfo: {
         mileage: formData.mileage,
         zipCode: formData.zip,
@@ -575,8 +607,8 @@ app.post("/api/submit-form", async (req, res) => {
         phone: formData.phone,
         email: formData.email,
       },
-      source: formData.source, // Include the source in the log
-      subLeadSource: formData.subLeadSource, // Include the subLeadSource in the log
+      source: formData.source,
+      subLeadSource: formData.subLeadSource,
     });
 
     // Create Salesforce Lead using our reusable function
