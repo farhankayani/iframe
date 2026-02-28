@@ -154,17 +154,19 @@ function formatPhoneNumber(phoneNumber) {
   )}-${digitsOnly.slice(6)}`;
 }
 
-// Format phone to E.164 (e.g. +1XXXXXXXXXX)
-function formatPhoneE164(phoneNumber) {
+// Format phone to E.164 for Railway (doc spec)
+function formatPhoneNumberE164(phoneNumber) {
   if (!phoneNumber) return "";
   const digitsOnly = phoneNumber.replace(/\D/g, "");
   if (digitsOnly.length < 10) return phoneNumber;
-  const normalized = digitsOnly.length === 10 ? `1${digitsOnly}` : digitsOnly;
-  return `+${normalized}`;
+  if (digitsOnly.length === 11 && digitsOnly.startsWith("1")) return `+${digitsOnly}`;
+  if (digitsOnly.length === 10) return `+1${digitsOnly}`;
+  if (phoneNumber.startsWith("+")) return phoneNumber;
+  return `+1${digitsOnly.slice(-10)}`;
 }
 
 const RAILWAY_LEADS_URL =
-  "https://abundant-miracle-production.up.railway.app/api/v1/leads";
+  "https://back-end-tzco.onrender.com/api/v1/leads";
 
 function isValidEmail(value) {
   if (!value || typeof value !== "string") return false;
@@ -207,8 +209,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
   const repainted = get(formData.repainted, formData.vehicle?.repainted);
   let source = get(formData.source, formData.lead?.source) || "Manual";
   if (source === "thecartrackers.com") source = "CT website";
-  const subLeadSource = get(formData.subLeadSource, formData.lead?.subLeadSource);
-  if (subLeadSource) source = `${source} ${subLeadSource}`.trim();
+  const leadSubSource = get(formData.subLeadSource, formData.lead?.subLeadSource) || "";
   const vehicleStr = [year, make, model, trim].filter(Boolean).join(" ");
   const carLocation =
     get(formData.car_location, formData.vehicle?.car_location) || zip || state || "";
@@ -219,14 +220,14 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
       ? String(desiredPriceRaw).replace(/\D/g, "")
       : "";
 
-  // Validate ZIP code format (5 digits or 5+4 format)
+  // Validate ZIP code format (5 digits or 5+4 format); for chatbot only send zipCode when valid
   const isValidZip = zip && /^\d{5}(?:-\d{4})?$/.test(zip);
 
   return {
     firstName: firstName || "",
     lastName: lastName || "",
     ...(isValidEmail(email) && { email: String(email).trim() }),
-    phone: formatPhoneE164(phone),
+    phone: formatPhoneNumberE164(phone),
     vehicleYear: year || "",
     vehicleMake: make || "",
     vehicleModel: model || "",
@@ -237,7 +238,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
     trim: trim || "",
     vin: vin || "",
     mileage: mileage || "",
-    ...(isValidZip && { zipCode: zip }),
+    ...(fromChatbot ? (isValidZip && { zipCode: zip }) : { zipCode: zip || "" }),
     title: title || "",
     titleOnName: titleInName || "",
     accident: accident || "",
@@ -248,6 +249,7 @@ function buildRailwayPayload(formData, fromChatbot = false, vehicleOverrides = {
     ...(askingPrice !== "" && { askingPrice }),
     ...(privatePartyUrl && { message: `Listing: ${privatePartyUrl}` }),
     source,
+    leadSubSource,
     lead_type: "buying",
     status: "new",
     leadFormId: 70,
